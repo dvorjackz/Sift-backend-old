@@ -3,7 +3,7 @@ const config = require('../config');
 const upload = require('../services/file-upload');
 
 const router = express.Router();
-const multUpload = upload.array('image');
+const multUpload = upload.array('files');
 
 let Rushee = require('../models/rushee.model');
 
@@ -92,7 +92,7 @@ router.route('/rankings').get((req, res) => {
 
 router.route('/upload-resume').post((req, res) => {
     multUpload(req, res, function(err) {
-        console.log(req.files);
+        console.log(req.files.length);
 
         let promises = [];
 
@@ -119,6 +119,7 @@ router.route('/upload-resume').post((req, res) => {
         }
 
         Promise.all(promises).then(() => {
+            console.log(req.files.length + " resumes stored into database.");
             res.json({message: "Added " + req.files.length + " resumes to the database.", numFiles: req.files.length});
         }).catch(err => {
             res.status(400).json('Error: ' + err);
