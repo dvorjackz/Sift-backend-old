@@ -3,7 +3,7 @@ const config = require('../config');
 const upload = require('../services/file-upload');
 
 const router = express.Router();
-const singleUpload = upload.single('image'); 
+const multUpload = upload.array('image');
 
 let Rushee = require('../models/rushee.model');
 
@@ -90,29 +90,39 @@ router.route('/rankings').get((req, res) => {
 
 /* -------------------------------------- CRUD ------------------------------------- */
 
-router.route('/upload-resume').post((req,res) => {
-    singleUpload(req, res, function(err) {
-        console.log(req.file);
+router.route('/upload-resume').post((req, res) => {
+    multUpload(req, res, function(err) {
+        console.log(req.files);
 
-        const fullName = req.file.key;
+        let promises = [];
 
-        var temp = fullName.split(" ");
-        temp = temp.slice(-2);
-        temp[1] = temp[1].split(".")[0];
+        for (let i = 0; i < req.files.length; i++) {
+            const fullName = req.files[i].key;
 
-        const firstName = temp[0];
-        const lastName = temp[1];
-        const resume = req.file.location;
+            var temp = fullName.split(" ");
+            temp = temp.slice(-2);
+            temp[1] = temp[1].split(".")[0];
 
-        console.log(firstName + ", " + lastName);
-        
-        const newRushee = new Rushee({"firstName": firstName, 
-                                "lastName": lastName, 
-                                "resume": resume});
+            const firstName = temp[0];
+            const lastName = temp[1];
+            const resume = req.files[i].location;
 
-        newRushee.save()
-            .then(() => res.json({message: "Rushee  " + firstName + " " + lastName + " was added! Link to resume: " + resume, firstName: firstName, lastName: lastName}))
-            .catch(err => res.status(400).json('Error: ' + err));
+            console.log(firstName + ", " + lastName);
+            
+            const newRushee = new Rushee({"firstName": firstName, 
+                                    "lastName": lastName, 
+                                    "resume": resume});
+
+            promises.push(newRushee.save());
+                // .then(() => res.json({message: "Rushee  " + firstName + " " + lastName + " was added! Link to resume: " + resume, firstName: firstName, lastName: lastName}))
+                // .catch(err => res.status(400).json('Error: ' + err));
+        }
+
+        Promise.all(promises).then(() => {
+            res.json({message: "Added " + req.files.length + " resumes to the database.", numFiles: req.files.length});
+        }).catch(err => {
+            res.status(400).json('Error: ' + err);
+        });
     });
 });
 
